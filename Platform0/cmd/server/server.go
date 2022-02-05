@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	port = flag.Int("port", 50051, "The server port")
+	port = flag.Int("port", 9090, "The server port")
 )
 
 // serverはhelloworld.GreeterServerを実装するために使用されます。
