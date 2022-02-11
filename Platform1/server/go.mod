@@ -1,4 +1,4 @@
-module platform0
+module platform1
 
 go 1.17
 

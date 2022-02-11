@@ -1,11 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
+import Unary from '../views/Unary.vue'
+import ServerStreaming from '../views/ServerStreaming.vue'
 
 const routes = [
   {
     path: '/',
     name: 'Home',
     component: Home
+  },
+  {
+    path: '/unary',
+    name: 'unary',
+    component: Unary
+  },
+  {
+    path: '/server-streaming',
+    name: 'server-streaming',
+    component: ServerStreaming
   },
   {
     path: '/about',

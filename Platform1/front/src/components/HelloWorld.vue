@@ -6,14 +6,13 @@
 </template>
 
 <script>
-//import {HelloRequest, HelloReply} from "@/helloworld/helloworld_pb.js"
-import {HelloRequest} from "@/helloworld/helloworld_pb.js"
-import {GreeterClient} from "@/helloworld/helloworld_grpc_web_pb.js"
+import {HelloRequest} from "@/proto/communicate_pb.js"
+import {CommunicateTestClient} from "@/proto/communicate_grpc_web_pb.js"
 import {ref} from "vue";
 export default {
   name: 'HelloWorld',
   setup(){
-    const client = ref(new GreeterClient('http://localhost:8080', null, null));
+    const client = ref(new CommunicateTestClient('http://localhost:8080', null, null));
 
     const greet = () => {
       let request = new HelloRequest();

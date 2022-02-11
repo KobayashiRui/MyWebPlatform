@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
-	pb "platform0/helloworld"
+	pb "platform1/proto"
 
 	"google.golang.org/grpc"
 )
@@ -18,13 +19,25 @@ var (
 
 // serverはhelloworld.GreeterServerを実装するために使用されます。
 type server struct {
-	pb.UnimplementedGreeterServer
+	pb.UnimplementedCommunicateTestServer
 }
 
-// SayHelloはhelloworld.GreeterServerを実装する
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
 	log.Printf("Received: %v", in.GetName())
 	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
+}
+
+func (s *server) Notification(req *pb.NotificationRequest, stream pb.CommunicateTest_NotificationServer) error {
+	fmt.Println("Get Request")
+	for i := int32(0); i < req.GetNum(); i++ {
+		if err := stream.Send(&pb.NotificationReply{
+			Num: i,
+		}); err != nil {
+			return err
+		}
+		time.Sleep(time.Second * 1)
+	}
+	return nil
 }
 
 func main() {
@@ -34,7 +47,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterGreeterServer(s, &server{})
+	pb.RegisterCommunicateTestServer(s, &server{})
 	log.Printf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
