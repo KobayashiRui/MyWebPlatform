@@ -11,10 +11,10 @@ service CommunicateTest{
     //Server streaming RPC
     rpc Notification (NotificationRequest) returns (stream NotificationReply){}
 
-    //Client streaming RPC
+    //Client streaming RPC  ※ Not support grpc-web
     rpc Upload (stream UploadRequest) returns (UploadReply){}
 
-    //Bidirectional streaming RPC
+    //Bidirectional streaming RPC ※ Not support grpc-web
     rpc Chat (stream ChatRequest) returns (stream ChatReply){}
 }
 
