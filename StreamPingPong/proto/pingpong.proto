@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "./;pingpong";
+package pingpong;
+
+service PingPongService {
+  rpc PingPongRPC (stream PongData) returns (stream PingData) {}
+}
+
+message PingData {
+    string msg = 1;
+    int32 ball = 2;
+}
+
+message PongData {
+  string msg = 1;
+  int32 ball = 2;
+}

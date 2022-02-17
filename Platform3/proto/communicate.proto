@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+option go_package = "./;communicate";
+
+package communicate;
+
+service CommunicateTest{
+    //Unary RPCs
+    rpc SayHello (HelloRequest) returns (HelloReply){}
+
+    //Server streaming RPC
+    rpc Notification (NotificationRequest) returns (stream NotificationReply){}
+
+    //Client streaming RPC  ※ Not support grpc-web
+    rpc Upload (stream UploadRequest) returns (UploadReply){}
+
+    //Bidirectional streaming RPC ※ Not support grpc-web
+    rpc Chat (stream ChatRequest) returns (stream ChatReply){}
+}
+
+message HelloRequest{
+    string name = 1;
+}
+
+message HelloReply{
+    string message = 1;
+}
+
+message NotificationRequest{
+    int32 num = 1;
+}
+
+message NotificationReply{
+    int32 num = 1;
+}
+
+message UploadRequest {
+    int32 value = 1;
+  }
+  
+message UploadReply {
+    string message = 1;
+}
+
+message ChatRequest {
+    string message = 1;
+}
+
+message ChatReply {
+    string message = 1;
+}

@@ -2,33 +2,29 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net"
-	"errors"
 
 	pb "todolist-platform/proto"
-
-
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/google/uuid"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 )
 
-type User struct{
-	Email string
+type User struct {
+	Email    string
 	Password string
 }
 
-var userDataList []User  = []User{}
+var userDataList []User = []User{}
 
 var tokenUserList map[string]User = make(map[string]User)
-
-
 
 //token key
 var mySigningKey []byte = []byte("HogehogeFugafuga")
@@ -41,14 +37,17 @@ type server struct {
 	pb.UnimplementedTodoListServiceServer
 }
 
-
 //SignInの処理
 func (s *server) SignIn(ctx context.Context, in *pb.SignInRequest) (*pb.SignInReply, error) {
-	for _, user := range userDataList{
-		if(user.Email ==  in.GetEmail() && user.Password == in.GetPassword()){
+	log.Printf("email:%s", in.GetEmail())
+	log.Printf("password:%s", in.GetPassword())
+	for _, user := range userDataList {
+		log.Printf("user email:%s", user.Email)
+		log.Printf("user password:%s", user.Password)
+		if user.Email == in.GetEmail() && user.Password == in.GetPassword() {
 			log.Printf("signin OK")
 
-			//custom Claims 
+			//custom Claims
 			type MyCustomClaims struct {
 				jwt.StandardClaims
 			}
@@ -56,11 +55,10 @@ func (s *server) SignIn(ctx context.Context, in *pb.SignInRequest) (*pb.SignInRe
 			//create uuid
 			uuidObj, _ := uuid.NewRandom()
 
-
 			claims := MyCustomClaims{
 				jwt.StandardClaims{
 					Issuer: "platform2",
-					Id:uuidObj.String(),
+					Id:     uuidObj.String(),
 				},
 			}
 
@@ -82,8 +80,8 @@ func (s *server) SignIn(ctx context.Context, in *pb.SignInRequest) (*pb.SignInRe
 
 //SignUp
 func (s *server) SignUp(ctx context.Context, in *pb.SignUpRequest) (*pb.SignUpReply, error) {
-	for _, user := range userDataList{
-		if(user.Email ==  in.GetEmail() && user.Password == in.GetPassword()){
+	for _, user := range userDataList {
+		if user.Email == in.GetEmail() && user.Password == in.GetPassword() {
 			return &pb.SignUpReply{Email: "error"}, nil
 		}
 	}
@@ -96,41 +94,60 @@ func (s *server) SignUp(ctx context.Context, in *pb.SignUpRequest) (*pb.SignUpRe
 
 //SignIn中のユーザー情報の取得
 //func (s *server) UserInfo(ctx context.Context, in *pb.UserInfoRequest) (*pb.UserInfoReply, error){
-//	return 
+//	return
 //}
+
+//get user info
+func (s *server) UserInfo(ctx context.Context, in *pb.UserInfoRequest) (*pb.UserInfoReply, error) {
+	user := ctx.Value("user").(User)
+
+	log.Printf("user email: %v", user.Email)
+	log.Printf("user pw: %v", user.Password)
+	return &pb.UserInfoReply{Email: user.Email, Password: user.Password}, nil
+
+}
 
 //meta data
 func AuthInterceptor() grpc.UnaryServerInterceptor {
-    return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-    	newCtx, err := authorize(ctx, info.FullMethod); 
-		
-		if err != nil {
-    	    return nil, err
-    	}
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		newCtx, err := authorize(ctx, info.FullMethod)
 
-    	return handler(newCtx, req)
-    }
+		if err != nil {
+			return nil, err
+		}
+
+		return handler(newCtx, req)
+	}
 }
 
 func authorize(ctx context.Context, fullMethodName string) (context.Context, error) {
-	log.Printf("method %s", fullMethodName )
+	log.Printf("method %s", fullMethodName)
+
+	//authを無視するプロトコル
+	if fullMethodName == "/todolistProto.TodoListService/SignIn" {
+		return ctx, nil
+	}
 
 	//metadata からkeyを取得
 	md, ok := metadata.FromIncomingContext(ctx)
 
-	if !ok{
+	if !ok {
 		return ctx, errors.New("authentication failed")
 	}
 
-	keyData := md["auth_key"]
+	//metadataからx-auth-tokenを取得
+	keyData := md["x-auth-token"][0]
 
-	log.Printf("keyData: %s", keyData)
+	log.Printf("Token Data: %s", keyData)
+
+	//metadataのkeyからUserを取得してctxにuserとして設定する
+	ctx = context.WithValue(ctx, "user", tokenUserList[keyData])
 
 	return ctx, nil
 }
 
 func main() {
-	userDataList = append(userDataList, User{"test@gamil.com","hogehgoe"})
+	userDataList = append(userDataList, User{"test@gmail.com", "hogehoge"})
 
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))

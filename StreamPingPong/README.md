@@ -1,0 +1,3 @@
+# StreamのPingPong実装
+外部機器操作用のping pong実装
+→サーバーからpingを投げてクライアント機器からpongをもらう
