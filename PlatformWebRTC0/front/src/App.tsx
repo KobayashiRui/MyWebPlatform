@@ -3,15 +3,17 @@ import './App.css';
 import {Service, Connector, RTC} from 'ion-sdk-js/lib/connector';
 import { Client, LocalStream, RemoteStream, Constraints} from 'ion-sdk-js';
 import { IonSFUGRPCWebSignal } from 'ion-sdk-js/lib/signal/grpc-web-impl';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
 }
 
 interface State {
-  rtc : RTC
-  connector : Connector
+  rtc : RTC | undefined;
+  connector : Connector | undefined;
   streams : { [key: string]: RemoteStream; }
-  //localDataChannel : RTCDataChannel|undefined
+  uuid : string
+  localDataChannel : RTCDataChannel|undefined
 }
 
 class App extends React.Component<Props, State> {
@@ -20,30 +22,33 @@ class App extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    const url = 'http://localhost:50051';
-    const connector = new Connector(url, "token");
-    const rtc = new RTC(connector);
-    //todo null state
-    this.state = {connector: connector, rtc: rtc, streams: {}}
+    this.state = {connector: undefined, rtc: undefined, streams: {}, uuid: uuidv4(), localDataChannel: undefined}
 
     this.joinClick = this.joinClick.bind(this)
     this.start = this.start.bind(this)
   }
 
   async joinClick() {
-    this.state.rtc.join("ion", "hoge", undefined);
-    this.state.connector.onopen = (service) => {
+    const url = 'http://localhost:50051';
+    //TODO set auth token
+    const connector = new Connector(url, "token");
+    const rtc = new RTC(connector);
+
+    console.log(this.state)
+
+    connector.onopen = (service) => {
       console.log("[onopen]: service = ", service.name);
     }
 
-    this.state.connector.onclose = (service) => {
+    connector.onclose = (service) => {
       console.log('[onclose]: service = ' + service.name);
     }
 
-    this.state.rtc.ontrack = (track, stream) => {
+    rtc.ontrack = (track, stream) => {
       console.log("got ", track.kind, " track", track.id, "for stream", stream.id);
       if (track.kind === "video") {
         track.onunmute = () => {
+          //todo 複数動画への対応
           if (!this.state.streams[stream.id]) {
             //const remoteVideo = document.createElement("video");
             this.remoteVideo.current!.srcObject = stream;
@@ -70,18 +75,26 @@ class App extends React.Component<Props, State> {
       }
     };
 
-    this.state.rtc.ontrackevent = (ev) => {
+    rtc.ontrackevent = (ev) => {
       console.log("ontrackevent: \nuid = ", ev.uid, " \nstate = ", ev.state, ", \ntracks = ", JSON.stringify(ev.tracks));
-      //if (this.state.trackEvent === undefined) {
-      //  console.log("store trackEvent=", ev)
-      //  this.state.trackEvent = ev;
-      //}
-      //remoteSignal.innerHTML = remoteSignal.innerHTML + JSON.stringify(ev) + '\n';
     };
+
+    rtc.join("ion", this.state.uuid, {no_publish:false, no_subscribe:false, no_auto_subscribe:false});
+
+    this.setState( () => (
+    {
+      connector : connector,
+      rtc: rtc
+    }))
 
   }
 
   start(){
+
+    if(this.state.connector === undefined || this.state.rtc === undefined) {
+      return;
+    }
+
     const constraints: Constraints = {
       resolution: 'hd',
       codec: 'vp8',
@@ -100,12 +113,12 @@ class App extends React.Component<Props, State> {
         this.localVideo.current!.controls = true;
         this.localVideo.current!.muted = true;
 
-        this.state.rtc.publish(media);
+        this.state.rtc?.publish(media);
+        //add Datachannel
         //this.state.localDataChannel = 
-        this.state.rtc.createDataChannel("hoge");
+        //this.state.rtc.createDataChannel(this.state.uuid);
       })
       .catch(console.error);
-
 
   }
 
