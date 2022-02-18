@@ -1,4 +1,3 @@
-/* eslint-disable */
 // package: communicate
 // file: proto/communicate.proto
 
