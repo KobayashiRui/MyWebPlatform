@@ -73,6 +73,7 @@ func (s *SFUServer) Signal(sig rtc.RTC_SignalServer) error {
 	peer := sfu.NewPeer(s.SFU)
 	var tracksMutex sync.RWMutex
 	var tracksInfo []*rtc.TrackInfo
+
 	defer func() {
 		if peer.Session() != nil {
 			log.Infof("[S=>C] close: sid => %v, uid => %v", peer.Session().ID(), peer.ID())
@@ -90,7 +91,12 @@ func (s *SFUServer) Signal(sig rtc.RTC_SignalServer) error {
 			}
 
 			// Remove down tracks that other peers subscribed from this peer
-			for _, downTrack := range peer.Subscriber().DownTracks() {
+			//for _, downTrack := range peer.Subscriber().DownTracks() {
+			subscriber := peer.Subscriber()
+			if subscriber == nil {
+				return
+			}
+			for _, downTrack := range subscriber.DownTracks() {
 				streamID := downTrack.StreamID()
 				for _, t := range tracksInfo {
 					if downTrack != nil && downTrack.ID() == t.Id {
@@ -327,6 +333,8 @@ func (s *SFUServer) Signal(sig rtc.RTC_SignalServer) error {
 
 			s.Lock()
 			s.sigs[peer.ID()] = sig
+
+			log.Infof("########## Sigs : %v", len(s.sigs))
 			s.Unlock()
 
 		case *rtc.Request_Description:
@@ -411,6 +419,8 @@ func (s *SFUServer) Signal(sig rtc.RTC_SignalServer) error {
 			}
 			log.Debugf("[C=>S] trickle: target %v, candidate %v", int(payload.Trickle.Target), candidate.Candidate)
 			err = peer.Trickle(candidate, int(payload.Trickle.Target))
+			//log.Debugf("[#### P] %v", peer.Publisher())
+			//log.Debugf("[#### S] %v", peer.Subscriber())
 			if err != nil {
 				switch err {
 				case sfu.ErrNoTransportEstablished:

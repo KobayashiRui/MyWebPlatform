@@ -80,6 +80,7 @@ class App extends React.Component<Props, State> {
       console.log("ontrackevent: \nuid = ", ev.uid, " \nstate = ", ev.state, ", \ntracks = ", JSON.stringify(ev.tracks));
     };
 
+    //rtc.join("ion", this.state.uuid, {no_publish:false, no_subscribe:false, no_auto_subscribe:false});
     rtc.join("ion", this.state.uuid, {no_publish:false, no_subscribe:false, no_auto_subscribe:false});
 
     this.setState( () => (

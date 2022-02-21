@@ -8,14 +8,15 @@ import (
 	_ "net/http/pprof"
 	"os"
 
-	"platform-webrtc0/server"
-	//"github.com/pion/ion-sfu/cmd/signal/grpc/server"
+	"platform-webrtc0-1/server"
+
 	"github.com/pion/ion-sfu/pkg/middlewares/datachannel"
 
-	log "github.com/pion/ion-sfu/pkg/logger"
 	"github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
+
+	log "github.com/pion/ion-sfu/pkg/logger"
 )
 
 type grpcConfig struct {
@@ -191,4 +192,57 @@ func main() {
 		logger.Error(err, "failed to serve SFU")
 		os.Exit(1)
 	}
+	/*
+		if !parse() {
+			showHelp()
+			os.Exit(-1)
+		}
+
+		// Check that the -v is not set (default -1)
+		if verbosityLevel < 0 {
+			verbosityLevel = conf.LogConfig.V
+		}
+
+		log.SetGlobalOptions(log.GlobalConfig{V: verbosityLevel})
+		logger := log.New()
+
+		logger.Info("--- Starting SFU Node ---")
+
+		if paddr != "" {
+			go func() {
+				logger.Info("PProf Listening", "addr", paddr)
+				_ = http.ListenAndServe(paddr, http.DefaultServeMux)
+			}()
+		}
+		go startMetrics(metricsAddr)
+
+		// SFU instance needs to be created with logr implementation
+		sfu.Logger = logger
+
+		nsfu := sfu.NewSFU(conf.Config)
+		dc := nsfu.NewDatachannel(sfu.APIChannelLabel)
+		dc.Use(datachannel.SubscriberAPI)
+
+		//通常のgrpc serverを起動する
+
+		grpcServer := grpc.NewServer(
+			grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+		)
+
+		rtc.RegisterRTCServer(grpcServer, server.NewSFUServer(nsfu))
+		grpc_health_v1.RegisterHealthServer(grpcServer, health.NewServer())
+		grpc_prometheus.Register(grpcServer)
+
+		lis, err := net.Listen("tcp", fmt.Sprintf("localhost:8080"))
+		if err != nil {
+			log2.Errorf("failed to listen: %v", err)
+		}
+
+		err := server.WrapperedGRPCWebServeSame(grpcServer, addr, cert, key)
+		if err != nil {
+			logger.Error(err, "failed to serve SFU")
+			os.Exit(1)
+		}
+	*/
+
 }
