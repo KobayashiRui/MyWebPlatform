@@ -15,29 +15,34 @@ message GetDevicesRequest {
 }
 
 message GetDevicesResponse {
-
+  map<string, string> devices = 1;
 }
 
 message AddDeviceRequest {
-  string deviceId = 1;
+  string name = 1;
 }
 
 message AddDeviceResponse {
-  bool result = 1;
+  string devid = 1;
 }
 
 message ControlleRequest {
-  string command = 1;
+  string name = 1;
+  string command = 2;
 }
 
 message ControlleResponse {
   string result = 1;
 }
 
+//server → device
 message ExControllerRequest {
-  string command = 1;
+  string cid = 1;
+  string command = 2;
 }
 
+//device → server
 message ExControllerResponse {
-  string result = 1;
+  string cid = 1;
+  string result = 2;
 }
