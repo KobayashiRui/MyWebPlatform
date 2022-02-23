@@ -5,6 +5,7 @@ import (
 	edoc "edo/proto"
 	"io"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -65,7 +66,7 @@ func (s *EdoServer) Controller(ctx context.Context, in *edoc.ControlleRequest) (
 	case received := <-rec:
 		return &edoc.ControlleResponse{Result: received}, nil
 
-	case <-time.After(30 * time.Second):
+	case <-time.After(60 * time.Second):
 		return &edoc.ControlleResponse{Result: "error"}, nil
 	}
 
@@ -84,44 +85,100 @@ func (s *EdoServer) ExController(stream edoc.EdoService_ExControllerServer) erro
 	//create chan fron command
 	s.ExDeviceStreams[token] = make(chan Command)
 
-	sendcom := false
-	cid := ""
-	var command Command
-	for {
-		if !sendcom {
-			//get command
-			command = <-s.ExDeviceStreams[token]
-			//create cid
-			cidObj, _ := uuid.NewRandom()
-			cid = cidObj.String()
+	//sendcom := false
+	//cid := ""
+	//cid := make(chan string)
 
-			request := edoc.ExControllerRequest{Cid: cid, Command: command.Com}
+	type SendCommand struct {
+		mu      sync.Mutex
+		enable  bool
+		cid     string
+		com     string
+		res     chan string
+		timeout *time.Timer
+	}
 
-			err := stream.Send(&request)
-			if err != nil {
-				log.Printf("send error: %v", err)
-				continue
-			} else {
-				sendcom = true
+	sendcom := SendCommand{enable: false}
+
+	go func() {
+		for {
+			if !sendcom.enable {
+				command := <-s.ExDeviceStreams[token]
+				cidObj, _ := uuid.NewRandom()
+				cid := cidObj.String()
+				sendcom.mu.Lock()
+				sendcom.cid = cid
+				sendcom.com = command.Com
+				sendcom.res = command.Res
+				sendcom.mu.Unlock()
+				request := edoc.ExControllerRequest{Cid: cid, Command: command.Com}
+
+				err := stream.Send(&request)
+				if err != nil {
+					log.Printf("send error: %v", err)
+					continue
+				} else {
+					sendcom.mu.Lock()
+					sendcom.enable = true
+					sendcom.timeout = time.NewTimer(3 * time.Second)
+					sendcom.mu.Unlock()
+				}
+			} else { //sendcom.enable == true
+				select {
+				case <-sendcom.timeout.C: //timeout!
+					sendcom.mu.Lock()
+					sendcom.res <- "timeout"
+					sendcom.enable = false
+					sendcom.mu.Unlock()
+				default:
+				}
 			}
 		}
+	}()
+
+	for {
+
+		//if !sendcom {
+		//	//get command
+		//	command = <-s.ExDeviceStreams[token]
+		//	//create cid
+		//	cidObj, _ := uuid.NewRandom()
+		//	cid = cidObj.String()
+
+		//	request := edoc.ExControllerRequest{Cid: cid, Command: command.Com}
+
+		//	err := stream.Send(&request)
+		//	if err != nil {
+		//		log.Printf("send error: %v", err)
+		//		continue
+		//	} else {
+		//		sendcom = true
+		//	}
+		//}
 
 		//receive command
+
+		//TODO timeout
 		in, err := stream.Recv()
 		if err == io.EOF {
+			log.Println("close")
 			return nil
 		}
 		if err != nil {
+			log.Println("error close")
 			return err
 		}
 
 		//check cid
-		if cid == in.GetCid() {
-			command.Res <- in.GetResult()
-			sendcom = false
+		if sendcom.enable && sendcom.cid == in.GetCid() {
+			log.Printf("get message: %v", in.GetResult())
+			sendcom.res <- in.GetResult()
+			sendcom.mu.Lock()
+			sendcom.enable = false
+			sendcom.mu.Unlock()
 		}
 
-		log.Printf("Command Result : %v", command)
+		//log.Printf("Command Result : %v", command)
 	}
 	//get metadata
 	// metadataからどのデバイスかを特定する
