@@ -46,6 +46,7 @@ func NewSFUServer(sfu *sfu.SFU) *SFUServer {
 	}
 }
 
+//TODO ROOM Broadcast
 func (s *SFUServer) BroadcastTrackEvent(uid string, tracks []*rtc.TrackInfo, state rtc.TrackEvent_State) {
 	s.Lock()
 	defer s.Unlock()

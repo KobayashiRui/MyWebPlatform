@@ -12,17 +12,19 @@ async function main() {
 }
 
 async function connect() {
-    const uri = "localhost:50051"
-    const client = new edo_rpc.EdoServiceClient(uri,
-        grpc.credentials.createInsecure());
+    const uri = "coprec.site:50051"
+    //const client = new edo_rpc.EdoServiceClient(uri,
+    //    grpc.credentials.createInsecure());
+    const client = new edo_rpc.EdoServiceClient(uri, grpc.credentials.createSsl())
 
-    const token = "6d764f1c-25cf-42b5-83aa-8a9e1c5fce13"
+    const token = "7cce611e-b382-4f92-84fc-b599d144aae5"
     let metadata = new grpc.Metadata();
     metadata.add("authorization", token);
 
 
     const call = client.exController(metadata);
     //const call = client.exController();
+    //todo start 定期配信
 
     call.on('data', async (reply) => {
         console.log("get message")
